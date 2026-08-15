@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>課程預約</title>
+<title>Yuyu老師的日韓語教室｜課程預約</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -76,10 +76,10 @@
 
   /* calendar */
   .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-left:42px;}
-  .cal-month{font-family:'Noto Serif TC', serif; font-size:17px; font-weight:600; color:var(--secondary);}
+  .cal-month{font-family:'Noto Serif TC', serif; font-size:19px; font-weight:600; color:var(--secondary);}
   .cal-btn{
-    width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-    background:var(--card); color:var(--primary); cursor:pointer; font-size:15px;
+    width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+    background:var(--card); color:var(--primary); cursor:pointer; font-size:16px;
     display:flex; align-items:center; justify-content:center;
     transition:.15s;
   }
@@ -88,15 +88,20 @@
     padding-left:42px;
     display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
   }
-  .cal-dow{text-align:center; font-size:12px; color:var(--muted); padding-bottom:6px; font-weight:600;}
+  .cal-dow{text-align:center; font-size:13px; color:var(--muted); padding-bottom:6px; font-weight:600;}
   .cal-day{
     aspect-ratio:1; display:flex; align-items:center; justify-content:center;
-    border-radius:10px; font-size:14px; cursor:pointer; color:var(--text);
+    border-radius:10px; font-size:17px; cursor:pointer; color:var(--text);
     border:1px solid transparent; background:transparent; position:relative;
     transition:.15s;
   }
   .cal-day.empty{cursor:default;}
   .cal-day.past{color:#c7c1b6; cursor:not-allowed;}
+  .cal-day.not-open{
+    flex-direction:column; gap:1px; color:#b9b2a3; cursor:not-allowed;
+  }
+  .cal-day-num{font-size:15px; line-height:1;}
+  .cal-day-tag{font-size:10px; line-height:1.2; letter-spacing:.02em; color:#a39c8c; font-weight:600; white-space:nowrap;}
   .cal-day:not(.empty):not(.past):hover{border-color:var(--primary); background:rgba(45,79,69,0.06);}
   .cal-day.today::after{
     content:""; position:absolute; bottom:5px; width:4px; height:4px; border-radius:50%; background:var(--gold);
@@ -132,12 +137,18 @@
   /* slots */
   .slot-grid{padding-left:42px; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px;}
   .slot-btn{
-    padding:12px 8px; border-radius:10px; border:1.5px solid var(--line); background:var(--card);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    min-height:68px; padding:10px 8px; border-radius:10px; border:1.5px solid var(--line); background:var(--card);
     cursor:pointer; font-size:14px; color:var(--text); font-weight:600; transition:.15s;
   }
   .slot-btn:hover:not(:disabled){border-color:var(--primary); background:rgba(45,79,69,0.06);}
   .slot-btn.active{background:var(--primary); border-color:var(--primary); color:var(--card);}
-  .slot-btn:disabled{background:#eee9dd; color:#b9b2a3; text-decoration:line-through; cursor:not-allowed; border-color:var(--line);}
+  .slot-btn.slot-booked{background:#eee9dd; color:#b9b2a3; cursor:not-allowed; border-color:var(--line); text-decoration:line-through;}
+  .slot-btn.loading{background:#f1ece0; color:#c2bcae; cursor:not-allowed; border-color:var(--line); animation:slotPulse 1.3s ease-in-out infinite;}
+  .slot-btn.slot-error{background:var(--warn-bg); color:var(--warn); cursor:not-allowed; border-color:rgba(156,74,60,0.3);}
+  @keyframes slotPulse{ 0%,100%{opacity:1;} 50%{opacity:.45;} }
+  .slot-time{font-size:14px; text-decoration:inherit;}
+  .slot-tag{font-size:11px; font-weight:600; text-decoration:inherit;}
   .slot-empty{padding-left:42px; font-size:13px; color:var(--muted);}
 
   /* form */
@@ -184,7 +195,7 @@
 
   <header>
     <div class="eyebrow">Reservation</div>
-    <h1>課程預約系統</h1>
+    <h1>Yuyu老師的日韓語教室</h1>
     <p class="sub">請依序選擇日期、課程方案與時段，完成預約資訊填寫</p>
   </header>
 
@@ -202,6 +213,7 @@
       <button class="cal-btn" id="nextMonth" type="button" aria-label="下個月">›</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+    <div style="padding-left:42px; margin-top:14px; font-size:13px; color:var(--muted);">僅開放今天起一個月內的日期預約，標示「尚未開放」的日期暫不開放預約</div>
   </div>
 
   <!-- Step 2: Duration + Count -->
@@ -216,24 +228,20 @@
         <div class="toggle-opts" id="durationOpts">
           <button type="button" class="opt-btn" data-value="50分鐘">
             <div class="opt-main">50 分鐘</div>
-            <div class="opt-sub">標準課程</div>
           </button>
           <button type="button" class="opt-btn" data-value="80分鐘">
             <div class="opt-main">80 分鐘</div>
-            <div class="opt-sub">加長課程</div>
           </button>
         </div>
       </div>
       <div class="toggle-group">
-        <div class="toggle-label">堂數</div>
-        <div class="toggle-opts" id="countOpts">
-          <button type="button" class="opt-btn" data-value="5堂">
-            <div class="opt-main">5 堂</div>
-            <div class="opt-sub">體驗方案</div>
+        <div class="toggle-label">語言選擇</div>
+        <div class="toggle-opts" id="languageOpts">
+          <button type="button" class="opt-btn" data-value="日文">
+            <div class="opt-main">日文</div>
           </button>
-          <button type="button" class="opt-btn" data-value="10堂">
-            <div class="opt-main">10 堂</div>
-            <div class="opt-sub">完整方案</div>
+          <button type="button" class="opt-btn" data-value="韓文">
+            <div class="opt-main">韓文</div>
           </button>
         </div>
       </div>
@@ -250,6 +258,7 @@
       <span class="mark">⚠</span>
       <span>請確認後再預約，勿隨意更改。時段一經送出即為系統鎖定，若需調整請提前 Line 訊息告知。</span>
     </div>
+    <div id="slotWarning" style="display:none; margin:0 0 14px 42px; background:var(--warn-bg); border:1px solid rgba(156,74,60,0.3); color:var(--warn); border-radius:10px; padding:10px 14px; font-size:13px;"></div>
     <div id="slotArea">
       <div class="slot-empty">請先於上方選擇日期，系統將顯示當日可預約時段</div>
     </div>
@@ -263,12 +272,16 @@
     </div>
     <div class="form-grid">
       <div class="field">
-        <label for="nameInput">姓名</label>
-        <input type="text" id="nameInput" placeholder="請輸入姓名" autocomplete="name">
+        <label for="nicknameInput">LINE / FB / IG 暱稱</label>
+        <input type="text" id="nicknameInput" placeholder="請輸入您常用的 LINE / FB / IG 暱稱" autocomplete="off">
       </div>
       <div class="field">
         <label for="lineIdInput">Line ID</label>
         <input type="text" id="lineIdInput" placeholder="請輸入 Line ID" autocomplete="off">
+      </div>
+      <div class="field" style="grid-column:1 / -1;">
+        <label for="emailInput">Email 信箱</label>
+        <input type="email" id="emailInput" placeholder="請輸入 Email，預約成功將寄送通知信" autocomplete="email">
       </div>
     </div>
 
@@ -276,7 +289,7 @@
       <div>日期<b id="sumDate">尚未選擇</b></div>
       <div>時段<b id="sumSlot">尚未選擇</b></div>
       <div>課程長度<b id="sumDuration">尚未選擇</b></div>
-      <div>堂數<b id="sumCount">尚未選擇</b></div>
+      <div>語言<b id="sumLanguage">尚未選擇</b></div>
     </div>
 
     <div class="submit-row">
@@ -292,22 +305,36 @@
 <script>
 /* ============ CONFIG ============ */
 // 部署 Google Apps Script 後，將 Web App 網址貼在這裡
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0h78RDvaT3Y-_bsuttf_BylAR2hBFQAsRNCS906Oo9hVX_BE3PyWP-u6fEq4p88o0nA/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9sEJYQsZVl7O-gBSl_Y7Py7_9fsPK8CfPYzalgieF6f-aZMolUUY_9U8TTxMgtGYI/exec";
 
-// 可預約時段清單（可自行增減）
-const TIME_SLOTS = ["10:00","11:30","13:30","15:00","16:30","18:00","19:30"];
+// 可預約時段：早上 9:00 到晚上 24:00，每 30 分鐘一個單位（自動產生，避免手動列表漏打或跟後端對不上）
+function generateTimeSlots(startHour, endHour, stepMinutes){
+  const slots = [];
+  for(let mins = startHour*60; mins <= endHour*60 - stepMinutes; mins += stepMinutes){
+    const h = Math.floor(mins/60);
+    const m = mins % 60;
+    slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  }
+  return slots;
+}
+const TIME_SLOTS = generateTimeSlots(9, 24, 30); // 09:00 ~ 23:30
 
 /* ============ STATE ============ */
 let viewYear, viewMonth; // calendar view
 let selectedDate = null;
 let selectedDuration = null;
-let selectedCount = null;
+let selectedLanguage = null;
 let selectedSlot = null;
 let bookedForSelectedDate = [];
+let slotUiState = 'loading'; // 'loading' | 'ready' | 'error'
 
 const today = new Date();
 viewYear = today.getFullYear();
 viewMonth = today.getMonth();
+
+// 只開放「今天起一個月內」的日期可預約，超過範圍顯示「尚未開放」
+const maxBookableDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+maxBookableDate.setMonth(maxBookableDate.getMonth() + 1);
 
 /* ============ SCROLL HELPER ============ */
 function scrollToStep(id){
@@ -355,6 +382,10 @@ function renderCalendar(){
     if(dateStr === todayStr) el.classList.add('today');
     if(dateObj < todayZero){
       el.classList.add('past');
+    } else if(dateObj > maxBookableDate){
+      el.classList.add('not-open');
+      el.innerHTML = `<span class="cal-day-num">${d}</span><span class="cal-day-tag">尚未開放</span>`;
+      el.title = '尚未開放預約';
     } else {
       el.addEventListener('click', ()=> selectDate(dateStr, el));
     }
@@ -372,15 +403,22 @@ document.getElementById('nextMonth').addEventListener('click', ()=>{
   renderCalendar();
 });
 
+let activeSlotFetchToken = 0; // 避免快速切換日期時，較舊的回覆蓋掉較新的畫面
+
 function selectDate(dateStr, el){
   selectedDate = dateStr;
   selectedSlot = null;
   renderCalendar();
   document.getElementById('sumDate').textContent = dateStr;
   document.getElementById('sumSlot').textContent = '尚未選擇';
-  loadBookedSlots(dateStr);
+  hideSlotWarning();
+  bookedForSelectedDate = [];
+
   updateSubmitState();
   scrollToStep('step2');
+
+  // refreshBookedSlots 會立刻把時段畫成 loading 狀態，再到背景查詢真正的資料
+  refreshBookedSlots(dateStr);
 }
 
 /* ============ DURATION / COUNT TOGGLES ============ */
@@ -398,57 +436,121 @@ setupToggleGroup('durationOpts', (val,label)=>{
   selectedDuration = val;
   document.getElementById('sumDuration').textContent = label;
   updateSubmitState();
-  if(selectedDuration && selectedCount) scrollToStep('step3');
+  if(selectedDuration && selectedLanguage) scrollToStep('step3');
 });
-setupToggleGroup('countOpts', (val,label)=>{
-  selectedCount = val;
-  document.getElementById('sumCount').textContent = label;
+setupToggleGroup('languageOpts', (val,label)=>{
+  selectedLanguage = val;
+  document.getElementById('sumLanguage').textContent = label;
   updateSubmitState();
-  if(selectedDuration && selectedCount) scrollToStep('step3');
+  if(selectedDuration && selectedLanguage) scrollToStep('step3');
 });
 
 /* ============ TIME SLOTS ============ */
 const slotArea = document.getElementById('slotArea');
 
-async function loadBookedSlots(dateStr){
-  slotArea.innerHTML = '<div class="slot-empty">載入時段中…</div>';
-  bookedForSelectedDate = [];
+function showSlotWarning(msg, withRetry, dateStr){
+  const box = document.getElementById('slotWarning');
+  box.style.display = 'block';
+  box.innerHTML = msg + (withRetry
+    ? ' <button type="button" id="retryLoadBtn" style="margin-left:8px; border:1px solid var(--warn); background:transparent; color:var(--warn); border-radius:6px; padding:2px 10px; font-size:12px; cursor:pointer;">重新查詢</button>'
+    : '');
+  if(withRetry){
+    const retryBtn = document.getElementById('retryLoadBtn');
+    if(retryBtn) retryBtn.addEventListener('click', ()=> refreshBookedSlots(dateStr));
+  }
+}
+
+function hideSlotWarning(){
+  const box = document.getElementById('slotWarning');
+  box.style.display = 'none';
+  box.innerHTML = '';
+}
+
+async function refreshBookedSlots(dateStr){
+  const myToken = ++activeSlotFetchToken;
+
+  // 立刻把時段畫成不可點擊的 loading 狀態，讓使用者馬上看到完整按鈕版面
+  slotUiState = 'loading';
+  hideSlotWarning();
+  renderSlots();
+
+  if(GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
+    slotUiState = 'error';
+    renderSlots();
+    showSlotWarning('尚未設定 Google 試算表連結，無法確認已預約時段', false);
+    return;
+  }
+
   try{
-    if(GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
-      const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(dateStr)}`);
-      const data = await res.json();
-      bookedForSelectedDate = data.booked || [];
+    // 加上時間戳作為 cache-buster，並關閉快取，避免讀到舊的已預約資料
+    const url = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(dateStr)}&_=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(!Array.isArray(data.booked)) throw new Error('回傳格式不正確');
+
+    // 如果使用者在等待期間已經切換到別的日期，這筆較舊的回覆就不要套用了
+    if(myToken !== activeSlotFetchToken) return;
+
+    bookedForSelectedDate = data.booked;
+    slotUiState = 'ready';
+    hideSlotWarning();
+
+    // 如果使用者剛好在等待的空檔選到一個時段，結果現在發現已經被訂走，主動清除並提醒
+    if(selectedSlot && bookedForSelectedDate.includes(selectedSlot)){
+      selectedSlot = null;
+      document.getElementById('sumSlot').textContent = '尚未選擇';
+      showSlotWarning('您選擇的時段剛被預約走了，請重新選擇其他時段', false);
     }
+
+    renderSlots();
   }catch(err){
     console.error('讀取已預約時段失敗', err);
+    if(myToken !== activeSlotFetchToken) return;
+    slotUiState = 'error';
+    renderSlots();
+    showSlotWarning('目前無法確認已預約時段，為避免重複預約，時段暫時無法點選', true, dateStr);
   }
-  renderSlots();
 }
 
 function renderSlots(){
   slotArea.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'slot-grid';
+
   TIME_SLOTS.forEach(time=>{
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'slot-btn';
-    btn.textContent = time;
-    const isBooked = bookedForSelectedDate.includes(time);
-    if(isBooked){
+
+    if(slotUiState === 'loading'){
       btn.disabled = true;
-      btn.textContent = `${time}（已預約）`;
+      btn.classList.add('loading');
+      btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">確認中</span>`;
+    } else if(slotUiState === 'error'){
+      btn.disabled = true;
+      btn.classList.add('slot-error');
+      btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">無法確認</span>`;
     } else {
-      btn.addEventListener('click', ()=>{
-        grid.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedSlot = time;
-        document.getElementById('sumSlot').textContent = time;
-        updateSubmitState();
-        scrollToStep('step4');
-      });
+      const isBooked = bookedForSelectedDate.includes(time);
+      if(isBooked){
+        btn.disabled = true;
+        btn.classList.add('slot-booked');
+        btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">已預約</span>`;
+      } else {
+        btn.innerHTML = `<span class="slot-time">${time}</span>`;
+        btn.addEventListener('click', ()=>{
+          grid.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedSlot = time;
+          document.getElementById('sumSlot').textContent = time;
+          updateSubmitState();
+          scrollToStep('step4');
+        });
+      }
+      if(selectedSlot === time && !isBooked) btn.classList.add('active');
     }
-    if(selectedSlot === time && !isBooked) btn.classList.add('active');
+
     grid.appendChild(btn);
   });
   slotArea.appendChild(grid);
@@ -457,8 +559,9 @@ function renderSlots(){
 /* ============ SUBMIT ============ */
 const submitBtn = document.getElementById('submitBtn');
 const statusMsg = document.getElementById('statusMsg');
-const nameInput = document.getElementById('nameInput');
+const nicknameInput = document.getElementById('nicknameInput');
 const lineIdInput = document.getElementById('lineIdInput');
+const emailInput = document.getElementById('emailInput');
 
 function updateSubmitState(){
   statusMsg.textContent = '';
@@ -469,28 +572,50 @@ submitBtn.addEventListener('click', async ()=>{
   statusMsg.textContent = '';
   statusMsg.className = 'status-msg';
 
-  const name = nameInput.value.trim();
+  const nickname = nicknameInput.value.trim();
   const lineId = lineIdInput.value.trim();
+  const email = emailInput.value.trim();
 
   if(!selectedDate){ return showError('請先選擇預約日期'); }
   if(!selectedDuration){ return showError('請選擇課堂時間長度'); }
-  if(!selectedCount){ return showError('請選擇堂數'); }
+  if(!selectedLanguage){ return showError('請選擇語言'); }
   if(!selectedSlot){ return showError('請選擇時段'); }
-  if(!name){ return showError('請填寫姓名'); }
+  if(!nickname){ return showError('請填寫 LINE / FB / IG 暱稱'); }
   if(!lineId){ return showError('請填寫 Line ID'); }
+  if(!email){ return showError('請填寫 Email 信箱'); }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ return showError('Email 格式不正確，請確認後再送出'); }
   if(GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
     return showError('尚未設定 Google 試算表連結，請聯繫網站管理者');
   }
 
   submitBtn.disabled = true;
+  submitBtn.textContent = '確認時段中…';
+
+  // 送出前再次向後端確認該時段是否仍可預約，避免畫面上的資料已過時
+  try{
+    const checkUrl = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(selectedDate)}&_=${Date.now()}`;
+    const checkRes = await fetch(checkUrl, { cache: 'no-store' });
+    const checkData = await checkRes.json();
+    if(Array.isArray(checkData.booked) && checkData.booked.includes(selectedSlot)){
+      submitBtn.disabled = false;
+      submitBtn.textContent = '送出預約';
+      showError('這個時段剛剛被其他人預約走了，請重新選擇時段');
+      refreshBookedSlots(selectedDate);
+      return;
+    }
+  }catch(err){
+    console.error('送出前確認時段失敗', err);
+    // 讀取失敗不擋下送出，最終仍由後端的重複檢查與鎖定機制把關
+  }
+
   submitBtn.textContent = '送出中…';
 
   const payload = {
-    name, lineId,
+    nickname, lineId, email,
     date: selectedDate,
     slot: selectedSlot,
     duration: selectedDuration,
-    count: selectedCount
+    language: selectedLanguage
   };
 
   try{
@@ -504,10 +629,10 @@ submitBtn.addEventListener('click', async ()=>{
       statusMsg.textContent = '預約成功！我們已收到您的預約資料，將盡快與您確認。';
       statusMsg.classList.add('ok');
       resetForm();
-      loadBookedSlots(selectedDate);
+      refreshBookedSlots(selectedDate);
     } else {
       showError(data.message || '此時段可能已被搶先預約，請重新選擇');
-      loadBookedSlots(selectedDate);
+      refreshBookedSlots(selectedDate);
     }
   }catch(err){
     console.error(err);
@@ -524,14 +649,15 @@ function showError(msg){
 }
 
 function resetForm(){
-  nameInput.value = '';
+  nicknameInput.value = '';
   lineIdInput.value = '';
+  emailInput.value = '';
   selectedSlot = null;
   selectedDuration = null;
-  selectedCount = null;
+  selectedLanguage = null;
   document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('sumDuration').textContent = '尚未選擇';
-  document.getElementById('sumCount').textContent = '尚未選擇';
+  document.getElementById('sumLanguage').textContent = '尚未選擇';
   document.getElementById('sumSlot').textContent = '尚未選擇';
 }
 
