@@ -354,6 +354,12 @@
         border-color: var(--line);
         text-decoration: line-through;
       }
+      .slot-btn.slot-passed {
+        background: #f1ece0;
+        color: #c2bcae;
+        cursor: not-allowed;
+        border-color: var(--line);
+      }
       .slot-btn.loading {
         background: #f1ece0;
         color: #c2bcae;
@@ -720,6 +726,7 @@
       let selectedLanguage = null;
       let selectedSlot = null;
       let bookedForSelectedDate = [];
+      let pastForSelectedDate = [];
       let slotUiState = 'loading'; // 'loading' | 'ready' | 'error'
 
       const today = new Date();
@@ -832,6 +839,7 @@
         document.getElementById('sumSlot').textContent = '尚未選擇';
         hideSlotWarning();
         bookedForSelectedDate = [];
+        pastForSelectedDate = [];
 
         updateSubmitState();
         scrollToStep('step2');
@@ -939,7 +947,9 @@
         try {
           // 加上時間戳作為 cache-buster，並關閉快取，避免讀到舊的已預約資料
           // 帶入實際選擇的課程時長，讓後端依照真正的時長判斷時段是否開放，而不是用保守的最長時間
-          const url = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(dateStr)}&duration=${encodeURIComponent(durationMinutes)}&_=${Date.now()}`;
+          // 同時帶入目前的時間戳，讓後端判斷哪些時段已經過去（now 這個參數也兼具 cache-buster 效果）
+          const now = Date.now();
+          const url = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(dateStr)}&duration=${encodeURIComponent(durationMinutes)}&now=${now}`;
           const res = await fetch(url, { cache: 'no-store' });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
@@ -949,10 +959,11 @@
           if (myToken !== activeSlotFetchToken) return;
 
           bookedForSelectedDate = data.booked;
+          pastForSelectedDate = Array.isArray(data.past) ? data.past : [];
           slotUiState = 'ready';
           hideSlotWarning();
 
-          // 如果使用者剛好在等待的空檔選到一個時段，結果現在發現已經被訂走，主動清除並提醒
+          // 如果使用者剛好在等待的空檔選到一個時段，結果現在發現已經被訂走或已截止，主動清除並提醒
           if (selectedSlot && bookedForSelectedDate.includes(selectedSlot)) {
             selectedSlot = null;
             document.getElementById('sumSlot').textContent = '尚未選擇';
@@ -960,6 +971,13 @@
               '您選擇的時段剛被預約走了，請重新選擇其他時段',
               false
             );
+          } else if (
+            selectedSlot &&
+            pastForSelectedDate.includes(selectedSlot)
+          ) {
+            selectedSlot = null;
+            document.getElementById('sumSlot').textContent = '尚未選擇';
+            showSlotWarning('您選擇的時段已經過期，請重新選擇其他時段', false);
           }
 
           renderSlots();
@@ -995,10 +1013,15 @@
             btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">無法確認</span>`;
           } else {
             const isBooked = bookedForSelectedDate.includes(time);
+            const isPast = pastForSelectedDate.includes(time);
             if (isBooked) {
               btn.disabled = true;
               btn.classList.add('slot-booked');
               btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">已預約</span>`;
+            } else if (isPast) {
+              btn.disabled = true;
+              btn.classList.add('slot-passed');
+              btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">已截止</span>`;
             } else {
               btn.innerHTML = `<span class="slot-time">${time}</span>`;
               btn.addEventListener('click', () => {
@@ -1012,7 +1035,8 @@
                 scrollToStep('step4');
               });
             }
-            if (selectedSlot === time && !isBooked) btn.classList.add('active');
+            if (selectedSlot === time && !isBooked && !isPast)
+              btn.classList.add('active');
           }
 
           grid.appendChild(btn);
@@ -1052,6 +1076,12 @@
         if (!selectedSlot) {
           return showError('請選擇時段');
         }
+        if (pastForSelectedDate.includes(selectedSlot)) {
+          selectedSlot = null;
+          document.getElementById('sumSlot').textContent = '尚未選擇';
+          renderSlots();
+          return showError('此時段已過期，請重新選擇');
+        }
         if (!nickname) {
           return showError('請填寫 LINE / FB / IG 暱稱');
         }
@@ -1073,16 +1103,23 @@
 
         // 送出前再次向後端確認該時段是否仍可預約，避免畫面上的資料已過時
         try {
-          const checkUrl = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(selectedDate)}&duration=${encodeURIComponent(parseDurationMinutes(selectedDuration))}&_=${Date.now()}`;
+          const checkUrl = `${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(selectedDate)}&duration=${encodeURIComponent(parseDurationMinutes(selectedDuration))}&now=${Date.now()}`;
           const checkRes = await fetch(checkUrl, { cache: 'no-store' });
           const checkData = await checkRes.json();
-          if (
+          const isNowBooked =
             Array.isArray(checkData.booked) &&
-            checkData.booked.includes(selectedSlot)
-          ) {
+            checkData.booked.includes(selectedSlot);
+          const isNowPast =
+            Array.isArray(checkData.past) &&
+            checkData.past.includes(selectedSlot);
+          if (isNowBooked || isNowPast) {
             submitBtn.disabled = false;
             submitBtn.textContent = '送出預約';
-            showError('這個時段剛剛被其他人預約走了，請重新選擇時段');
+            showError(
+              isNowPast
+                ? '此時段已過期，請重新選擇'
+                : '這個時段剛剛被其他人預約走了，請重新選擇時段'
+            );
             refreshBookedSlots(
               selectedDate,
               parseDurationMinutes(selectedDuration)
