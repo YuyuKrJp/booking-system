@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>課程預約</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#2d4f45;
+    --secondary:#1e352d;
+    --bg:#f4efe6;
+    --card:#fffdf8;
+    --gold:#b8935a;
+    --warn:#9c4a3c;
+    --warn-bg:#f4e4de;
+    --line:rgba(45,79,69,0.16);
+    --text:#1e352d;
+    --muted:#6b776f;
+    --shadow: 0 10px 30px -12px rgba(30,53,45,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 100% 0%, rgba(45,79,69,0.05) 0%, transparent 45%),
+      radial-gradient(circle at 0% 100%, rgba(184,147,90,0.08) 0%, transparent 40%);
+    font-family:'Noto Sans TC', sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    padding:48px 20px 80px;
+  }
+  .wrap{max-width:980px; margin:0 auto;}
+
+  /* header */
+  header{text-align:center; margin-bottom:44px;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:.24em; color:var(--gold);
+    font-weight:600; margin-bottom:14px; text-transform:uppercase;
+  }
+  .eyebrow::before,.eyebrow::after{content:""; width:24px; height:1px; background:var(--gold);}
+  h1{
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,40px);
+    margin:0 0 10px;
+    color:var(--secondary);
+  }
+  header p.sub{color:var(--muted); font-size:15px; margin:0;}
+
+  /* step card shell */
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:32px clamp(20px,4vw,40px);
+    margin-bottom:24px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  .step-head{display:flex; align-items:baseline; gap:14px; margin-bottom:22px;}
+  .step-num{
+    font-family:'Noto Serif TC', serif;
+    font-size:13px; font-weight:600; color:var(--card);
+    background:var(--primary);
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .step-title{font-family:'Noto Serif TC', serif; font-size:19px; font-weight:600; color:var(--secondary);}
+  .step-desc{font-size:13px; color:var(--muted); margin:2px 0 0 42px;}
+
+  /* calendar */
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-left:42px;}
+  .cal-month{font-family:'Noto Serif TC', serif; font-size:17px; font-weight:600; color:var(--secondary);}
+  .cal-btn{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+    background:var(--card); color:var(--primary); cursor:pointer; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+  }
+  .cal-btn:hover{background:var(--primary); color:var(--card); border-color:var(--primary);}
+  .cal-grid{
+    padding-left:42px;
+    display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+  }
+  .cal-dow{text-align:center; font-size:12px; color:var(--muted); padding-bottom:6px; font-weight:600;}
+  .cal-day{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    border-radius:10px; font-size:14px; cursor:pointer; color:var(--text);
+    border:1px solid transparent; background:transparent; position:relative;
+    transition:.15s;
+  }
+  .cal-day.empty{cursor:default;}
+  .cal-day.past{color:#c7c1b6; cursor:not-allowed;}
+  .cal-day:not(.empty):not(.past):hover{border-color:var(--primary); background:rgba(45,79,69,0.06);}
+  .cal-day.today::after{
+    content:""; position:absolute; bottom:5px; width:4px; height:4px; border-radius:50%; background:var(--gold);
+  }
+  .cal-day.selected{background:var(--primary); color:var(--card); font-weight:700;}
+  .cal-day.selected::after{display:none;}
+
+  /* toggle groups */
+  .toggle-row{padding-left:42px; display:flex; gap:12px; flex-wrap:wrap;}
+  .toggle-group{flex:1; min-width:220px;}
+  .toggle-label{font-size:13px; color:var(--muted); margin-bottom:10px; font-weight:600;}
+  .toggle-opts{display:flex; gap:10px;}
+  .opt-btn{
+    flex:1; padding:14px 10px; border-radius:12px; border:1.5px solid var(--line);
+    background:var(--card); cursor:pointer; text-align:center; transition:.15s;
+    font-family:'Noto Sans TC', sans-serif;
+  }
+  .opt-btn .opt-main{font-size:16px; font-weight:700; color:var(--secondary); font-family:'Noto Serif TC', serif;}
+  .opt-btn .opt-sub{font-size:11px; color:var(--muted); margin-top:2px;}
+  .opt-btn:hover{border-color:var(--primary);}
+  .opt-btn.active{background:var(--primary); border-color:var(--primary);}
+  .opt-btn.active .opt-main, .opt-btn.active .opt-sub{color:var(--card);}
+
+  /* reminder */
+  .reminder{
+    margin:0 0 18px 42px;
+    background:var(--warn-bg); border:1px solid rgba(156,74,60,0.3);
+    color:var(--warn); border-radius:10px; padding:12px 16px;
+    font-size:13px; display:flex; gap:10px; align-items:flex-start; line-height:1.6;
+  }
+  .reminder .mark{font-weight:700; flex-shrink:0;}
+
+  /* slots */
+  .slot-grid{padding-left:42px; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px;}
+  .slot-btn{
+    padding:12px 8px; border-radius:10px; border:1.5px solid var(--line); background:var(--card);
+    cursor:pointer; font-size:14px; color:var(--text); font-weight:600; transition:.15s;
+  }
+  .slot-btn:hover:not(:disabled){border-color:var(--primary); background:rgba(45,79,69,0.06);}
+  .slot-btn.active{background:var(--primary); border-color:var(--primary); color:var(--card);}
+  .slot-btn:disabled{background:#eee9dd; color:#b9b2a3; text-decoration:line-through; cursor:not-allowed; border-color:var(--line);}
+  .slot-empty{padding-left:42px; font-size:13px; color:var(--muted);}
+
+  /* form */
+  .form-grid{padding-left:42px; display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:560px){ .form-grid{grid-template-columns:1fr;} }
+  .field label{display:block; font-size:13px; color:var(--muted); font-weight:600; margin-bottom:8px;}
+  .field input{
+    width:100%; padding:13px 14px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--card); font-size:14px; font-family:inherit; color:var(--text);
+  }
+  .field input:focus{outline:none; border-color:var(--primary);}
+
+  /* summary + submit */
+  .summary{
+    margin-left:42px; margin-top:26px; padding:18px 20px; border-radius:12px;
+    background:rgba(45,79,69,0.05); border:1px dashed var(--line); font-size:13px; color:var(--muted);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px;
+  }
+  .summary div b{display:block; color:var(--secondary); font-family:'Noto Serif TC', serif; font-size:15px; margin-top:2px;}
+
+  .submit-row{display:flex; align-items:center; gap:16px; margin:28px 0 6px 42px; flex-wrap:wrap;}
+  .seal{
+    width:52px; height:52px; border-radius:50%; flex-shrink:0;
+    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    font-family:'Noto Serif TC', serif; color:var(--gold); font-weight:700; font-size:13px;
+    background:rgba(184,147,90,0.08);
+  }
+  .submit-btn{
+    padding:16px 40px; border-radius:999px; border:none; background:var(--primary); color:var(--card);
+    font-size:15px; font-weight:700; font-family:'Noto Sans TC', sans-serif; cursor:pointer;
+    letter-spacing:.05em; transition:.15s; box-shadow:0 8px 20px -8px rgba(45,79,69,0.5);
+  }
+  .submit-btn:hover:not(:disabled){background:var(--secondary); transform:translateY(-1px);}
+  .submit-btn:disabled{background:#c9c2b3; cursor:not-allowed; box-shadow:none;}
+  .status-msg{font-size:13px; margin-left:42px; margin-top:10px; min-height:18px;}
+  .status-msg.ok{color:var(--primary); font-weight:600;}
+  .status-msg.err{color:var(--warn); font-weight:600;}
+
+  footer{text-align:center; margin-top:36px; font-size:12px; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Reservation</div>
+    <h1>課程預約系統</h1>
+    <p class="sub">請依序選擇日期、課程方案與時段，完成預約資訊填寫</p>
+  </header>
+
+  <!-- Step 1: Calendar -->
+  <div class="card" id="step1">
+    <div class="step-head">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title">選擇日期</div>
+      </div>
+    </div>
+    <div class="cal-nav">
+      <button class="cal-btn" id="prevMonth" type="button" aria-label="上個月">‹</button>
+      <div class="cal-month" id="calMonthLabel"></div>
+      <button class="cal-btn" id="nextMonth" type="button" aria-label="下個月">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Step 2: Duration + Count -->
+  <div class="card" id="step2">
+    <div class="step-head">
+      <div class="step-num">02</div>
+      <div class="step-title">選擇課程方案</div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-group">
+        <div class="toggle-label">課堂時間長度</div>
+        <div class="toggle-opts" id="durationOpts">
+          <button type="button" class="opt-btn" data-value="50分鐘">
+            <div class="opt-main">50 分鐘</div>
+            <div class="opt-sub">標準課程</div>
+          </button>
+          <button type="button" class="opt-btn" data-value="80分鐘">
+            <div class="opt-main">80 分鐘</div>
+            <div class="opt-sub">加長課程</div>
+          </button>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-label">堂數</div>
+        <div class="toggle-opts" id="countOpts">
+          <button type="button" class="opt-btn" data-value="5堂">
+            <div class="opt-main">5 堂</div>
+            <div class="opt-sub">體驗方案</div>
+          </button>
+          <button type="button" class="opt-btn" data-value="10堂">
+            <div class="opt-main">10 堂</div>
+            <div class="opt-sub">完整方案</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Time slots -->
+  <div class="card" id="step3">
+    <div class="step-head">
+      <div class="step-num">03</div>
+      <div class="step-title">選擇時段</div>
+    </div>
+    <div class="reminder">
+      <span class="mark">⚠</span>
+      <span>請確認後再預約，勿隨意更改。時段一經送出即為系統鎖定，若需調整請提前 Line 訊息告知。</span>
+    </div>
+    <div id="slotArea">
+      <div class="slot-empty">請先於上方選擇日期，系統將顯示當日可預約時段</div>
+    </div>
+  </div>
+
+  <!-- Step 4: Contact info -->
+  <div class="card" id="step4">
+    <div class="step-head">
+      <div class="step-num">04</div>
+      <div class="step-title">填寫聯絡資料</div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="nameInput">姓名</label>
+        <input type="text" id="nameInput" placeholder="請輸入姓名" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="lineIdInput">Line ID</label>
+        <input type="text" id="lineIdInput" placeholder="請輸入 Line ID" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="summary" id="summaryBox">
+      <div>日期<b id="sumDate">尚未選擇</b></div>
+      <div>時段<b id="sumSlot">尚未選擇</b></div>
+      <div>課程長度<b id="sumDuration">尚未選擇</b></div>
+      <div>堂數<b id="sumCount">尚未選擇</b></div>
+    </div>
+
+    <div class="submit-row">
+      <div class="seal">確定</div>
+      <button class="submit-btn" id="submitBtn" type="button">送出預約</button>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <footer>如需更改或取消預約，請直接與我們聯繫</footer>
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+// 部署 Google Apps Script 後，將 Web App 網址貼在這裡
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0h78RDvaT3Y-_bsuttf_BylAR2hBFQAsRNCS906Oo9hVX_BE3PyWP-u6fEq4p88o0nA/exec";
+
+// 可預約時段清單（可自行增減）
+const TIME_SLOTS = ["10:00","11:30","13:30","15:00","16:30","18:00","19:30"];
+
+/* ============ STATE ============ */
+let viewYear, viewMonth; // calendar view
+let selectedDate = null;
+let selectedDuration = null;
+let selectedCount = null;
+let selectedSlot = null;
+let bookedForSelectedDate = [];
+
+const today = new Date();
+viewYear = today.getFullYear();
+viewMonth = today.getMonth();
+
+/* ============ SCROLL HELPER ============ */
+function scrollToStep(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  // 稍微延遲，讓畫面先完成該步驟的視覺更新再捲動
+  setTimeout(()=>{
+    const top = el.getBoundingClientRect().top + window.pageYOffset - 24;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, 150);
+}
+
+/* ============ CALENDAR ============ */
+const calGrid = document.getElementById('calGrid');
+const calMonthLabel = document.getElementById('calMonthLabel');
+const dowNames = ['日','一','二','三','四','五','六'];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtDate(y,m,d){ return `${y}-${pad(m+1)}-${pad(d)}`; }
+
+function renderCalendar(){
+  calMonthLabel.textContent = `${viewYear} 年 ${viewMonth+1} 月`;
+  calGrid.innerHTML = '';
+  dowNames.forEach(d=>{
+    const el = document.createElement('div');
+    el.className='cal-dow'; el.textContent=d;
+    calGrid.appendChild(el);
+  });
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  for(let i=0;i<firstDay;i++){
+    const el=document.createElement('div');
+    el.className='cal-day empty';
+    calGrid.appendChild(el);
+  }
+  const todayStr = fmtDate(today.getFullYear(), today.getMonth(), today.getDate());
+  for(let d=1; d<=daysInMonth; d++){
+    const el=document.createElement('div');
+    const dateStr = fmtDate(viewYear, viewMonth, d);
+    const dateObj = new Date(viewYear, viewMonth, d);
+    dateObj.setHours(0,0,0,0);
+    const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    el.className='cal-day';
+    el.textContent = d;
+    if(dateStr === todayStr) el.classList.add('today');
+    if(dateObj < todayZero){
+      el.classList.add('past');
+    } else {
+      el.addEventListener('click', ()=> selectDate(dateStr, el));
+    }
+    if(selectedDate === dateStr) el.classList.add('selected');
+    calGrid.appendChild(el);
+  }
+}
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  viewMonth--; if(viewMonth<0){viewMonth=11; viewYear--;}
+  renderCalendar();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  viewMonth++; if(viewMonth>11){viewMonth=0; viewYear++;}
+  renderCalendar();
+});
+
+function selectDate(dateStr, el){
+  selectedDate = dateStr;
+  selectedSlot = null;
+  renderCalendar();
+  document.getElementById('sumDate').textContent = dateStr;
+  document.getElementById('sumSlot').textContent = '尚未選擇';
+  loadBookedSlots(dateStr);
+  updateSubmitState();
+  scrollToStep('step2');
+}
+
+/* ============ DURATION / COUNT TOGGLES ============ */
+function setupToggleGroup(containerId, onSelect){
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.opt-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      container.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      onSelect(btn.dataset.value, btn.querySelector('.opt-main').textContent);
+    });
+  });
+}
+setupToggleGroup('durationOpts', (val,label)=>{
+  selectedDuration = val;
+  document.getElementById('sumDuration').textContent = label;
+  updateSubmitState();
+  if(selectedDuration && selectedCount) scrollToStep('step3');
+});
+setupToggleGroup('countOpts', (val,label)=>{
+  selectedCount = val;
+  document.getElementById('sumCount').textContent = label;
+  updateSubmitState();
+  if(selectedDuration && selectedCount) scrollToStep('step3');
+});
+
+/* ============ TIME SLOTS ============ */
+const slotArea = document.getElementById('slotArea');
+
+async function loadBookedSlots(dateStr){
+  slotArea.innerHTML = '<div class="slot-empty">載入時段中…</div>';
+  bookedForSelectedDate = [];
+  try{
+    if(GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
+      const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBooked&date=${encodeURIComponent(dateStr)}`);
+      const data = await res.json();
+      bookedForSelectedDate = data.booked || [];
+    }
+  }catch(err){
+    console.error('讀取已預約時段失敗', err);
+  }
+  renderSlots();
+}
+
+function renderSlots(){
+  slotArea.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'slot-grid';
+  TIME_SLOTS.forEach(time=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'slot-btn';
+    btn.textContent = time;
+    const isBooked = bookedForSelectedDate.includes(time);
+    if(isBooked){
+      btn.disabled = true;
+      btn.textContent = `${time}（已預約）`;
+    } else {
+      btn.addEventListener('click', ()=>{
+        grid.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSlot = time;
+        document.getElementById('sumSlot').textContent = time;
+        updateSubmitState();
+        scrollToStep('step4');
+      });
+    }
+    if(selectedSlot === time && !isBooked) btn.classList.add('active');
+    grid.appendChild(btn);
+  });
+  slotArea.appendChild(grid);
+}
+
+/* ============ SUBMIT ============ */
+const submitBtn = document.getElementById('submitBtn');
+const statusMsg = document.getElementById('statusMsg');
+const nameInput = document.getElementById('nameInput');
+const lineIdInput = document.getElementById('lineIdInput');
+
+function updateSubmitState(){
+  statusMsg.textContent = '';
+  statusMsg.className = 'status-msg';
+}
+
+submitBtn.addEventListener('click', async ()=>{
+  statusMsg.textContent = '';
+  statusMsg.className = 'status-msg';
+
+  const name = nameInput.value.trim();
+  const lineId = lineIdInput.value.trim();
+
+  if(!selectedDate){ return showError('請先選擇預約日期'); }
+  if(!selectedDuration){ return showError('請選擇課堂時間長度'); }
+  if(!selectedCount){ return showError('請選擇堂數'); }
+  if(!selectedSlot){ return showError('請選擇時段'); }
+  if(!name){ return showError('請填寫姓名'); }
+  if(!lineId){ return showError('請填寫 Line ID'); }
+  if(GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
+    return showError('尚未設定 Google 試算表連結，請聯繫網站管理者');
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送出中…';
+
+  const payload = {
+    name, lineId,
+    date: selectedDate,
+    slot: selectedSlot,
+    duration: selectedDuration,
+    count: selectedCount
+  };
+
+  try{
+    const res = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 避免 CORS 預檢
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.status === 'success'){
+      statusMsg.textContent = '預約成功！我們已收到您的預約資料，將盡快與您確認。';
+      statusMsg.classList.add('ok');
+      resetForm();
+      loadBookedSlots(selectedDate);
+    } else {
+      showError(data.message || '此時段可能已被搶先預約，請重新選擇');
+      loadBookedSlots(selectedDate);
+    }
+  }catch(err){
+    console.error(err);
+    showError('送出失敗，請檢查網路連線後再試一次');
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = '送出預約';
+  }
+});
+
+function showError(msg){
+  statusMsg.textContent = msg;
+  statusMsg.className = 'status-msg err';
+}
+
+function resetForm(){
+  nameInput.value = '';
+  lineIdInput.value = '';
+  selectedSlot = null;
+  selectedDuration = null;
+  selectedCount = null;
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sumDuration').textContent = '尚未選擇';
+  document.getElementById('sumCount').textContent = '尚未選擇';
+  document.getElementById('sumSlot').textContent = '尚未選擇';
+}
+
+/* ============ INIT ============ */
+renderCalendar();
+</script>
+</body>
+</html>
