@@ -360,6 +360,59 @@
         cursor: not-allowed;
         border-color: var(--line);
       }
+      .slot-btn.slot-line-only {
+        background: rgba(184, 147, 90, 0.08);
+        border-color: rgba(184, 147, 90, 0.4);
+        color: var(--gold);
+      }
+      .slot-btn.slot-line-only:hover {
+        background: rgba(184, 147, 90, 0.16);
+        border-color: var(--gold);
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(30, 53, 45, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+      }
+      .modal-card {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 32px 28px;
+        max-width: 360px;
+        width: 100%;
+        text-align: center;
+        box-shadow: var(--shadow);
+      }
+      .modal-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+      .modal-text {
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--text);
+        margin: 0 0 22px;
+      }
+      .modal-close-btn {
+        padding: 12px 32px;
+        border-radius: 999px;
+        border: none;
+        background: var(--primary);
+        color: var(--card);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .modal-close-btn:hover {
+        background: var(--secondary);
+      }
       .slot-btn.loading {
         background: #f1ece0;
         color: #c2bcae;
@@ -689,6 +742,18 @@
       <footer>如需更改或取消預約，請直接與我們聯繫</footer>
     </div>
 
+    <div id="lineContactModal" class="modal-overlay" style="display: none">
+      <div class="modal-card">
+        <div class="modal-icon">💬</div>
+        <p class="modal-text">
+          距離上課時6小時內之時段，請直接以 Line 聯絡老師。
+        </p>
+        <button type="button" class="modal-close-btn" id="modalCloseBtn">
+          我知道了
+        </button>
+      </div>
+    </div>
+
     <script>
       /* ============ CONFIG ============ */
       // 部署 Google Apps Script 後，將 Web App 網址貼在這裡
@@ -727,6 +792,7 @@
       let selectedSlot = null;
       let bookedForSelectedDate = [];
       let pastForSelectedDate = [];
+      let lineOnlyForSelectedDate = [];
       let slotUiState = 'loading'; // 'loading' | 'ready' | 'error'
 
       const today = new Date();
@@ -751,6 +817,21 @@
           window.scrollTo({ top, behavior: 'smooth' });
         }, 150);
       }
+
+      /* ============ LINE CONTACT MODAL ============ */
+      const lineContactModal = document.getElementById('lineContactModal');
+      function showLineContactModal() {
+        lineContactModal.style.display = 'flex';
+      }
+      function hideLineContactModal() {
+        lineContactModal.style.display = 'none';
+      }
+      document
+        .getElementById('modalCloseBtn')
+        .addEventListener('click', hideLineContactModal);
+      lineContactModal.addEventListener('click', e => {
+        if (e.target === lineContactModal) hideLineContactModal(); // 點擊背景區域也可關閉
+      });
 
       /* ============ CALENDAR ============ */
       const calGrid = document.getElementById('calGrid');
@@ -840,6 +921,7 @@
         hideSlotWarning();
         bookedForSelectedDate = [];
         pastForSelectedDate = [];
+        lineOnlyForSelectedDate = [];
 
         updateSubmitState();
         scrollToStep('step2');
@@ -960,6 +1042,9 @@
 
           bookedForSelectedDate = data.booked;
           pastForSelectedDate = Array.isArray(data.past) ? data.past : [];
+          lineOnlyForSelectedDate = Array.isArray(data.lineOnly)
+            ? data.lineOnly
+            : [];
           slotUiState = 'ready';
           hideSlotWarning();
 
@@ -978,6 +1063,16 @@
             selectedSlot = null;
             document.getElementById('sumSlot').textContent = '尚未選擇';
             showSlotWarning('您選擇的時段已經過期，請重新選擇其他時段', false);
+          } else if (
+            selectedSlot &&
+            lineOnlyForSelectedDate.includes(selectedSlot)
+          ) {
+            selectedSlot = null;
+            document.getElementById('sumSlot').textContent = '尚未選擇';
+            showSlotWarning(
+              '這個時段目前已在上課前6小時內，請直接以 Line 聯絡老師',
+              false
+            );
           }
 
           renderSlots();
@@ -1014,6 +1109,7 @@
           } else {
             const isBooked = bookedForSelectedDate.includes(time);
             const isPast = pastForSelectedDate.includes(time);
+            const isLineOnly = lineOnlyForSelectedDate.includes(time);
             if (isBooked) {
               btn.disabled = true;
               btn.classList.add('slot-booked');
@@ -1022,6 +1118,10 @@
               btn.disabled = true;
               btn.classList.add('slot-passed');
               btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">已截止</span>`;
+            } else if (isLineOnly) {
+              btn.classList.add('slot-line-only');
+              btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">Line洽詢</span>`;
+              btn.addEventListener('click', () => showLineContactModal());
             } else {
               btn.innerHTML = `<span class="slot-time">${time}</span>`;
               btn.addEventListener('click', () => {
@@ -1035,7 +1135,7 @@
                 scrollToStep('step4');
               });
             }
-            if (selectedSlot === time && !isBooked && !isPast)
+            if (selectedSlot === time && !isBooked && !isPast && !isLineOnly)
               btn.classList.add('active');
           }
 
@@ -1082,6 +1182,13 @@
           renderSlots();
           return showError('此時段已過期，請重新選擇');
         }
+        if (lineOnlyForSelectedDate.includes(selectedSlot)) {
+          selectedSlot = null;
+          document.getElementById('sumSlot').textContent = '尚未選擇';
+          renderSlots();
+          showLineContactModal();
+          return;
+        }
         if (!nickname) {
           return showError('請填寫 LINE / FB / IG 暱稱');
         }
@@ -1112,6 +1219,21 @@
           const isNowPast =
             Array.isArray(checkData.past) &&
             checkData.past.includes(selectedSlot);
+          const isNowLineOnly =
+            Array.isArray(checkData.lineOnly) &&
+            checkData.lineOnly.includes(selectedSlot);
+          if (isNowLineOnly) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '送出預約';
+            selectedSlot = null;
+            document.getElementById('sumSlot').textContent = '尚未選擇';
+            refreshBookedSlots(
+              selectedDate,
+              parseDurationMinutes(selectedDuration)
+            );
+            showLineContactModal();
+            return;
+          }
           if (isNowBooked || isNowPast) {
             submitBtn.disabled = false;
             submitBtn.textContent = '送出預約';
