@@ -329,7 +329,7 @@
 <script>
 /* ============ CONFIG ============ */
 // 部署 Google Apps Script 後，將 Web App 網址貼在這裡
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9sEJYQsZVl7O-gBSl_Y7Py7_9fsPK8CfPYzalgieF6f-aZMolUUY_9U8TTxMgtGYI/exec";
+const GOOGLE_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 // 可預約時段：早上 9:00 到晚上 24:00，每 30 分鐘一個單位（自動產生，避免手動列表漏打或跟後端對不上）
 function generateTimeSlots(startHour, endHour, stepMinutes){
@@ -631,7 +631,7 @@ function renderSlots(){
       } else if(isNotOpen){
         btn.disabled = true;
         btn.classList.add('slot-not-open');
-        btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">公休</span>`;
+        btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">未開放</span>`;
       } else if(isLineOnly){
         btn.classList.add('slot-line-only');
         btn.innerHTML = `<span class="slot-time">${time}</span><span class="slot-tag">Line洽詢</span>`;
