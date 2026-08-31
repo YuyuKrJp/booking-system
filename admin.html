@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yuyu老師的日韓語教室｜後台管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#2d4f45;
+    --secondary:#1e352d;
+    --bg:#f4efe6;
+    --card:#fffdf8;
+    --gold:#b8935a;
+    --warn:#9c4a3c;
+    --warn-bg:#f4e4de;
+    --line:rgba(45,79,69,0.16);
+    --text:#1e352d;
+    --muted:#6b776f;
+    --shadow: 0 10px 30px -12px rgba(30,53,45,0.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:'Noto Sans TC', sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    padding:40px 20px 80px;
+  }
+  .wrap{max-width:720px; margin:0 auto;}
+
+  header{text-align:center; margin-bottom:36px;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:.24em; color:var(--gold);
+    font-weight:600; margin-bottom:12px; text-transform:uppercase;
+  }
+  .eyebrow::before,.eyebrow::after{content:""; width:24px; height:1px; background:var(--gold);}
+  h1{
+    font-family:'Noto Serif TC', serif; font-weight:700;
+    font-size:clamp(24px,4vw,32px); margin:0 0 8px; color:var(--secondary);
+  }
+  header p{color:var(--muted); font-size:14px; margin:0;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:28px clamp(18px,4vw,36px); margin-bottom:22px; box-shadow:var(--shadow);
+  }
+
+  /* login */
+  #loginCard{max-width:400px; margin:60px auto 0;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; color:var(--muted); font-weight:600; margin-bottom:8px;}
+  .field input, .field select{
+    width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--card); font-size:14px; font-family:inherit; color:var(--text);
+  }
+  .field input:focus, .field select:focus{outline:none; border-color:var(--primary);}
+
+  .btn{
+    padding:13px 28px; border-radius:999px; border:none; background:var(--primary); color:var(--card);
+    font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; transition:.15s;
+  }
+  .btn:hover:not(:disabled){background:var(--secondary);}
+  .btn:disabled{background:#c9c2b3; cursor:not-allowed;}
+  .btn-block{width:100%;}
+  .btn-danger{background:transparent; color:var(--warn); border:1px solid var(--warn); padding:6px 14px; font-size:12px; border-radius:8px;}
+  .btn-danger:hover{background:var(--warn-bg);}
+
+  .msg{font-size:13px; margin-top:12px; min-height:18px;}
+  .msg.err{color:var(--warn); font-weight:600;}
+  .msg.ok{color:var(--primary); font-weight:600;}
+
+  /* add form */
+  .form-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .form-row .field{flex:1; min-width:140px;}
+  .hint{font-size:12px; color:var(--muted); margin:-8px 0 16px;}
+
+  /* list */
+  .step-title{font-family:'Noto Serif TC', serif; font-size:18px; font-weight:600; color:var(--secondary); margin:0 0 18px;}
+  .closure-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px;}
+  .closure-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:rgba(45,79,69,0.03);
+  }
+  .closure-info b{font-family:'Noto Serif TC', serif; color:var(--secondary); font-size:15px; display:block;}
+  .closure-info span{font-size:12px; color:var(--muted);}
+  .empty-hint{font-size:13px; color:var(--muted); text-align:center; padding:20px 0;}
+
+  #appArea{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Admin</div>
+    <h1>後台管理</h1>
+    <p>手動管理不開放預約的日期／時段（僅老師使用，請勿分享此頁面網址）</p>
+  </header>
+
+  <!-- Login -->
+  <div class="card" id="loginCard">
+    <div class="field">
+      <label for="passwordInput">後台密碼</label>
+      <input type="password" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+    </div>
+    <button class="btn btn-block" id="loginBtn" type="button">登入</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- App -->
+  <div id="appArea">
+    <div class="card">
+      <div class="step-title">新增關閉時段</div>
+      <div class="form-row">
+        <div class="field">
+          <label for="dateInput">日期</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="field">
+          <label for="startSelect">開始時段</label>
+          <select id="startSelect"><option value="">整天</option></select>
+        </div>
+        <div class="field">
+          <label for="endSelect">結束時段</label>
+          <select id="endSelect"><option value="">整天</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="noteInput">備註（選填）</label>
+        <input type="text" id="noteInput" placeholder="例如：出國、私人行程">
+      </div>
+      <div class="hint">開始／結束時段都留空「整天」，代表這一天全天不開放；只想關閉某個時段，兩個都要選。</div>
+      <button class="btn" id="addBtn" type="button">新增</button>
+      <div class="msg" id="addMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="step-title">目前的關閉時段</div>
+      <div id="closureListArea"><div class="empty-hint">載入中…</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9sEJYQsZVl7O-gBSl_Y7Py7_9fsPK8CfPYzalgieF6f-aZMolUUY_9U8TTxMgtGYI/exec";
+
+let adminPassword = '';
+
+function generateTimeSlots(startHour, endHour, stepMinutes){
+  const slots = [];
+  for(let mins = startHour*60; mins <= endHour*60 - stepMinutes; mins += stepMinutes){
+    const h = Math.floor(mins/60);
+    const m = mins % 60;
+    slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+  }
+  return slots;
+}
+const TIME_SLOTS = generateTimeSlots(9, 24, 30);
+
+const startSelect = document.getElementById('startSelect');
+const endSelect = document.getElementById('endSelect');
+TIME_SLOTS.forEach(t=>{
+  const o1 = document.createElement('option'); o1.value = t; o1.textContent = t; startSelect.appendChild(o1);
+  const o2 = document.createElement('option'); o2.value = t; o2.textContent = t; endSelect.appendChild(o2);
+});
+
+async function callAdminApi(payload){
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ adminAction: true, password: adminPassword }, payload))
+  });
+  return res.json();
+}
+
+/* ============ LOGIN ============ */
+const loginBtn = document.getElementById('loginBtn');
+const passwordInput = document.getElementById('passwordInput');
+const loginMsg = document.getElementById('loginMsg');
+
+loginBtn.addEventListener('click', async ()=>{
+  const pw = passwordInput.value.trim();
+  if(!pw){ loginMsg.textContent = '請輸入密碼'; loginMsg.className = 'msg err'; return; }
+  if(GOOGLE_SCRIPT_URL.includes('PASTE_YOUR')){
+    loginMsg.textContent = '尚未設定 Google 試算表連結'; loginMsg.className = 'msg err'; return;
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = '登入中…';
+  loginMsg.textContent = '';
+  loginMsg.className = 'msg';
+
+  adminPassword = pw;
+  try{
+    const data = await callAdminApi({ adminAction: 'list' });
+    if(data.status === 'success'){
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('appArea').style.display = 'block';
+      renderClosures(data.closures || []);
+    } else {
+      adminPassword = '';
+      loginMsg.textContent = data.message || '登入失敗';
+      loginMsg.className = 'msg err';
+    }
+  }catch(err){
+    adminPassword = '';
+    console.error(err);
+    loginMsg.textContent = '連線失敗，請稍後再試';
+    loginMsg.className = 'msg err';
+  }finally{
+    loginBtn.disabled = false;
+    loginBtn.textContent = '登入';
+  }
+});
+
+passwordInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') loginBtn.click(); });
+
+/* ============ ADD ============ */
+const addBtn = document.getElementById('addBtn');
+const addMsg = document.getElementById('addMsg');
+
+addBtn.addEventListener('click', async ()=>{
+  const date = document.getElementById('dateInput').value;
+  const start = startSelect.value;
+  const end = endSelect.value;
+  const note = document.getElementById('noteInput').value.trim();
+
+  addMsg.textContent = '';
+  addMsg.className = 'msg';
+
+  if(!date){ addMsg.textContent = '請選擇日期'; addMsg.className = 'msg err'; return; }
+  if((start && !end) || (!start && end)){
+    addMsg.textContent = '開始時段與結束時段請兩個都選，或都留空代表整天關閉';
+    addMsg.className = 'msg err';
+    return;
+  }
+  if(start && end && start >= end){
+    addMsg.textContent = '結束時段必須晚於開始時段';
+    addMsg.className = 'msg err';
+    return;
+  }
+
+  addBtn.disabled = true;
+  addBtn.textContent = '新增中…';
+
+  try{
+    const data = await callAdminApi({ adminAction: 'add', date, start, end, note });
+    if(data.status === 'success'){
+      addMsg.textContent = '新增成功';
+      addMsg.className = 'msg ok';
+      document.getElementById('noteInput').value = '';
+      renderClosures(data.closures || []);
+    } else {
+      addMsg.textContent = data.message || '新增失敗';
+      addMsg.className = 'msg err';
+    }
+  }catch(err){
+    console.error(err);
+    addMsg.textContent = '連線失敗，請稍後再試';
+    addMsg.className = 'msg err';
+  }finally{
+    addBtn.disabled = false;
+    addBtn.textContent = '新增';
+  }
+});
+
+/* ============ LIST / DELETE ============ */
+function renderClosures(closures){
+  const area = document.getElementById('closureListArea');
+  if(!closures.length){
+    area.innerHTML = '<div class="empty-hint">目前沒有手動關閉的時段</div>';
+    return;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'closure-list';
+
+  closures.forEach(c=>{
+    const li = document.createElement('li');
+    li.className = 'closure-item';
+
+    const timeRange = (c.start && c.end) ? `${c.start} - ${c.end}` : '整天';
+    const info = document.createElement('div');
+    info.className = 'closure-info';
+    info.innerHTML = `<b>${c.date}　${timeRange}</b><span>${c.note ? c.note : '無備註'}</span>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-danger';
+    delBtn.textContent = '刪除';
+    delBtn.addEventListener('click', ()=> deleteClosure(c.id));
+
+    li.appendChild(info);
+    li.appendChild(delBtn);
+    list.appendChild(li);
+  });
+
+  area.innerHTML = '';
+  area.appendChild(list);
+}
+
+async function deleteClosure(id){
+  if(!confirm('確定要刪除這筆關閉時段嗎？')) return;
+  try{
+    const data = await callAdminApi({ adminAction: 'delete', id });
+    if(data.status === 'success'){
+      renderClosures(data.closures || []);
+    } else {
+      alert(data.message || '刪除失敗');
+    }
+  }catch(err){
+    console.error(err);
+    alert('連線失敗，請稍後再試');
+  }
+}
+</script>
+</body>
+</html>
