@@ -115,7 +115,45 @@
   <!-- App -->
   <div id="appArea">
     <div class="card">
-      <div class="step-title">新增關閉時段</div>
+      <div class="step-title">新增每週固定公休</div>
+      <div class="form-row">
+        <div class="field">
+          <label for="weeklyWeekdaySelect">星期</label>
+          <select id="weeklyWeekdaySelect">
+            <option value="1">週一</option>
+            <option value="2">週二</option>
+            <option value="3">週三</option>
+            <option value="4">週四</option>
+            <option value="5">週五</option>
+            <option value="6">週六</option>
+            <option value="0">週日</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="weeklyStartSelect">開始時段</label>
+          <select id="weeklyStartSelect"></select>
+        </div>
+        <div class="field">
+          <label for="weeklyEndSelect">結束時段</label>
+          <select id="weeklyEndSelect"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="weeklyNoteInput">備註（選填）</label>
+        <input type="text" id="weeklyNoteInput" placeholder="例如：固定休息時間">
+      </div>
+      <div class="hint">開始與結束時段都是必填；同一天可以新增多段（例如中午一段、晚上一段）。</div>
+      <button class="btn" id="weeklyAddBtn" type="button">新增</button>
+      <div class="msg" id="weeklyAddMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="step-title">目前的每週固定公休</div>
+      <div id="weeklyListArea"><div class="empty-hint">載入中…</div></div>
+    </div>
+
+    <div class="card">
+      <div class="step-title">新增臨時關閉時段</div>
       <div class="form-row">
         <div class="field">
           <label for="dateInput">日期</label>
@@ -140,7 +178,7 @@
     </div>
 
     <div class="card">
-      <div class="step-title">目前的關閉時段</div>
+      <div class="step-title">目前的臨時關閉時段</div>
       <div id="closureListArea"><div class="empty-hint">載入中…</div></div>
     </div>
   </div>
@@ -169,6 +207,14 @@ TIME_SLOTS.forEach(t=>{
   const o1 = document.createElement('option'); o1.value = t; o1.textContent = t; startSelect.appendChild(o1);
   const o2 = document.createElement('option'); o2.value = t; o2.textContent = t; endSelect.appendChild(o2);
 });
+
+const weeklyStartSelect = document.getElementById('weeklyStartSelect');
+const weeklyEndSelect = document.getElementById('weeklyEndSelect');
+TIME_SLOTS.forEach(t=>{
+  const o1 = document.createElement('option'); o1.value = t; o1.textContent = t; weeklyStartSelect.appendChild(o1);
+  const o2 = document.createElement('option'); o2.value = t; o2.textContent = t; weeklyEndSelect.appendChild(o2);
+});
+const WEEKDAY_LABELS = ['週日','週一','週二','週三','週四','週五','週六'];
 
 async function callAdminApi(payload){
   const res = await fetch(GOOGLE_SCRIPT_URL, {
@@ -203,6 +249,7 @@ loginBtn.addEventListener('click', async ()=>{
       document.getElementById('loginCard').style.display = 'none';
       document.getElementById('appArea').style.display = 'block';
       renderClosures(data.closures || []);
+      renderWeeklyClosures(data.weeklyClosures || []);
     } else {
       adminPassword = '';
       loginMsg.textContent = data.message || '登入失敗';
@@ -311,6 +358,96 @@ async function deleteClosure(id){
     const data = await callAdminApi({ adminAction: 'delete', id });
     if(data.status === 'success'){
       renderClosures(data.closures || []);
+    } else {
+      alert(data.message || '刪除失敗');
+    }
+  }catch(err){
+    console.error(err);
+    alert('連線失敗，請稍後再試');
+  }
+}
+
+/* ============ WEEKLY CLOSURES ============ */
+function renderWeeklyClosures(list){
+  const area = document.getElementById('weeklyListArea');
+  if(!list.length){
+    area.innerHTML = '<div class="empty-hint">目前沒有設定每週固定公休</div>';
+    return;
+  }
+
+  const ul = document.createElement('ul');
+  ul.className = 'closure-list';
+
+  list.forEach(c=>{
+    const li = document.createElement('li');
+    li.className = 'closure-item';
+
+    const info = document.createElement('div');
+    info.className = 'closure-info';
+    info.innerHTML = `<b>${WEEKDAY_LABELS[c.weekday]}　${c.start} - ${c.end}</b><span>${c.note ? c.note : '無備註'}</span>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-danger';
+    delBtn.textContent = '刪除';
+    delBtn.addEventListener('click', ()=> deleteWeeklyClosure(c.id));
+
+    li.appendChild(info);
+    li.appendChild(delBtn);
+    ul.appendChild(li);
+  });
+
+  area.innerHTML = '';
+  area.appendChild(ul);
+}
+
+document.getElementById('weeklyAddBtn').addEventListener('click', async ()=>{
+  const weekday = parseInt(document.getElementById('weeklyWeekdaySelect').value, 10);
+  const start = weeklyStartSelect.value;
+  const end = weeklyEndSelect.value;
+  const note = document.getElementById('weeklyNoteInput').value.trim();
+  const msg = document.getElementById('weeklyAddMsg');
+  const btn = document.getElementById('weeklyAddBtn');
+
+  msg.textContent = '';
+  msg.className = 'msg';
+
+  if(start >= end){
+    msg.textContent = '結束時段必須晚於開始時段';
+    msg.className = 'msg err';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '新增中…';
+
+  try{
+    const data = await callAdminApi({ adminAction: 'addWeekly', weekday, start, end, note });
+    if(data.status === 'success'){
+      msg.textContent = '新增成功';
+      msg.className = 'msg ok';
+      document.getElementById('weeklyNoteInput').value = '';
+      renderWeeklyClosures(data.weeklyClosures || []);
+    } else {
+      msg.textContent = data.message || '新增失敗';
+      msg.className = 'msg err';
+    }
+  }catch(err){
+    console.error(err);
+    msg.textContent = '連線失敗，請稍後再試';
+    msg.className = 'msg err';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = '新增';
+  }
+});
+
+async function deleteWeeklyClosure(id){
+  if(!confirm('確定要刪除這筆每週固定公休設定嗎？')) return;
+  try{
+    const data = await callAdminApi({ adminAction: 'deleteWeekly', id });
+    if(data.status === 'success'){
+      renderWeeklyClosures(data.weeklyClosures || []);
     } else {
       alert(data.message || '刪除失敗');
     }
